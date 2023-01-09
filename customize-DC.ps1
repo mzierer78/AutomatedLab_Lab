@@ -1,18 +1,19 @@
-Send-ALNotification -Activity "Actions for $DC" -Message " " -Provider Toast
+
 Write-ScreenInfo -Message "Starting Actions for $DC"
 
+#region Prepare
 #Prepare AD Credentials
-Send-ALNotification -Activity "Actions for $DC" -Message "Prepare AD Credentials" -Provider Toast
+Write-ScreenInfo -Message "Prepare AD Credentials"
 $secpasswd = ConvertTo-SecureString $TestLabSecPwd -AsPlainText -Force
 $secuser = $TestLabSecUser
 $creds = New-Object System.Management.Automation.PSCredential ($secuser, $secpasswd)
 
 #Prepare AD Domain Name
-Send-ALNotification -Activity "Actions for $DC" -Message "Prepare AD Domain Name" -Provider Toast
+Write-ScreenInfo -Message "Prepare AD Domain Name"
 $TestLabDomainName = $TestLabDomain.Split(".")[0]
+#endregion
 
-#Create AD OU's
-Send-ALNotification -Activity "Actions for $DC" -Message "Create AD OU's" -Provider Toast
+#region Create AD OU's
 Write-ScreenInfo -Message "start creating default OU's"
 $DefaultLabName = 'maxxys'
 Invoke-LabCommand -ActivityName "Add OU $DefaultLabName" -ComputerName $DC -ScriptBlock {
@@ -51,11 +52,10 @@ Invoke-LabCommand -ActivityName "Add OU $TestLabOUName" -ComputerName $DC -Scrip
     New-ADOrganizationalUnit -Name $TestLabOUName -Path "OU=$TestLabName,DC=$TestLabDomainName,DC=LOCAL" -ProtectedFromAccidentalDeletion $False
 } -Credential $creds -Variable (Get-Variable -Name TestLabOUName),(Get-Variable -Name TestLabName),(Get-Variable -Name TestLabDomainName)
 Remove-Variable -Name TestLabOUName
+#endregion
 
-
-#Move Computers to OU's
-Send-ALNotification -Activity "Actions for $DC" -Message "Move Computers" -Provider Toast
-Write-Screeninfo -Message "start moving Computers"
+#region Move Computers to OU's
+#Write-Screeninfo -Message "start moving Computers"
 
 #$Identity = "CN=$PC01,CN=Computers,DC=$TestLabDomainName,DC=local"
 #$TargetPath = "OU=TS,OU=$TestLabName,DC=$TestLabDomainName,DC=local"
@@ -65,10 +65,10 @@ Write-Screeninfo -Message "start moving Computers"
 #Remove-Variable -Name Identity
 #Remove-Variable -Name TargetPath
 
-Write-ScreenInfo -Message "end moving computers"
+#Write-ScreenInfo -Message "end moving computers"
+#endregion
 
-#create additional users
-Send-ALNotification -Activity "Actions for $DC" -Message "Create Users" -Provider Toast
+#region create users
 Write-ScreenInfo -Message "start creating Users"
 
 $Pwd = 'Pa55word'
@@ -97,8 +97,34 @@ Invoke-LabCommand -ActivityName "CreateUser $User" -ComputerName $DC -ScriptBloc
 Remove-Variable -Name User
 
 Write-ScreenInfo -Message "end creating Users"
+#endregion
 
-#Install software
-#Install-LabSoftwarePackage -ComputerName $DC -Path $labSources\Labs\$TestLabName\SoftwarePackages\GoogleChromeStandaloneEnterprise64.msi -CommandLine /qn
+#region Move Users to OU's
+Write-Screeninfo -Message "start moving default Users"
+
+$Identity = "CN=domAdmin,CN=Users,DC=$TestLabDomainName,DC=local"
+$TargetPath = "OU=Admins,OU=maxxys,DC=$TestLabDomainName,DC=local"
+Invoke-LabCommand -ActivityName "Move $Identity to $TargetPath" -ComputerName $DC -ScriptBlock {
+    Move-ADObject -Identity $Identity -TargetPath $TargetPath
+} -Credential $creds -Variable (Get-Variable -Name Identity),(Get-Variable -Name TargetPath)
+Remove-Variable -Name Identity
+Remove-Variable -Name TargetPath
+
+$Identity = "CN=locAdmin,CN=Users,DC=$TestLabDomainName,DC=local"
+$TargetPath = "OU=Admins,OU=maxxys,DC=$TestLabDomainName,DC=local"
+Invoke-LabCommand -ActivityName "Move $Identity to $TargetPath" -ComputerName $DC -ScriptBlock {
+    Move-ADObject -Identity $Identity -TargetPath $TargetPath
+} -Credential $creds -Variable (Get-Variable -Name Identity),(Get-Variable -Name TargetPath)
+Remove-Variable -Name Identity
+Remove-Variable -Name TargetPath
+
+$Identity = "CN=sqlAdmin,CN=Users,DC=$TestLabDomainName,DC=local"
+$TargetPath = "OU=Admins,OU=maxxys,DC=$TestLabDomainName,DC=local"
+Invoke-LabCommand -ActivityName "Move $Identity to $TargetPath" -ComputerName $DC -ScriptBlock {
+    Move-ADObject -Identity $Identity -TargetPath $TargetPath
+} -Credential $creds -Variable (Get-Variable -Name Identity),(Get-Variable -Name TargetPath)
+Remove-Variable -Name Identity
+Remove-Variable -Name TargetPath
+#endregion
 
 Send-ALNotification -Activity "Actions for $DC" -Message "All actions for $DC done" -Provider Toast
