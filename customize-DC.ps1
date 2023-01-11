@@ -96,6 +96,22 @@ Invoke-LabCommand -ActivityName "CreateUser $User" -ComputerName $DC -ScriptBloc
 } -Credential $creds -Variable (Get-Variable -Name User),(Get-Variable -Name Pwd)
 Remove-Variable -Name User
 
+$User = 'user1'
+Invoke-LabCommand -ActivityName "CreateUser $User" -ComputerName $DC -ScriptBlock {
+    Import-Module ActiveDirectory
+    $secpwd = ConvertTo-SecureString $Pwd -AsPlainText -Force
+    New-ADUser -Name $User -AccountPassword $secpwd -Enabled $true -ChangePasswordAtLogon $false
+} -Credential $creds -Variable (Get-Variable -Name User),(Get-Variable -Name Pwd)
+Remove-Variable -Name User
+
+$User = 'user2'
+Invoke-LabCommand -ActivityName "CreateUser $User" -ComputerName $DC -ScriptBlock {
+    Import-Module ActiveDirectory
+    $secpwd = ConvertTo-SecureString $Pwd -AsPlainText -Force
+    New-ADUser -Name $User -AccountPassword $secpwd -Enabled $true -ChangePasswordAtLogon $false
+} -Credential $creds -Variable (Get-Variable -Name User),(Get-Variable -Name Pwd)
+Remove-Variable -Name User
+
 Write-ScreenInfo -Message "end creating Users"
 #endregion
 
@@ -125,6 +141,58 @@ Invoke-LabCommand -ActivityName "Move $Identity to $TargetPath" -ComputerName $D
 } -Credential $creds -Variable (Get-Variable -Name Identity),(Get-Variable -Name TargetPath)
 Remove-Variable -Name Identity
 Remove-Variable -Name TargetPath
+
+$Identity = "CN=user1,CN=Users,DC=$TestLabDomainName,DC=local"
+$TargetPath = "OU=Accounts,OU=maxxys,DC=$TestLabDomainName,DC=local"
+Invoke-LabCommand -ActivityName "Move $Identity to $TargetPath" -ComputerName $DC -ScriptBlock {
+    Move-ADObject -Identity $Identity -TargetPath $TargetPath
+} -Credential $creds -Variable (Get-Variable -Name Identity),(Get-Variable -Name TargetPath)
+Remove-Variable -Name Identity
+Remove-Variable -Name TargetPath
+
+$Identity = "CN=user2,CN=Users,DC=$TestLabDomainName,DC=local"
+$TargetPath = "OU=Accounts,OU=maxxys,DC=$TestLabDomainName,DC=local"
+Invoke-LabCommand -ActivityName "Move $Identity to $TargetPath" -ComputerName $DC -ScriptBlock {
+    Move-ADObject -Identity $Identity -TargetPath $TargetPath
+} -Credential $creds -Variable (Get-Variable -Name Identity),(Get-Variable -Name TargetPath)
+Remove-Variable -Name Identity
+Remove-Variable -Name TargetPath
+
 #endregion
 
+#region Create AD Groups
+Write-ScreenInfo -Message "start creating AD Groups"
+#Create AD Groups
+$Name = "Local-Admins"
+$Identity = "CN=$Name,OU=Groups,OU=maxxys,DC=$TestLabDomainName,DC=local"
+$TargetPath = "OU=Groups,OU=maxxys,DC=$TestLabDomainName,DC=local"
+Invoke-LabCommand -ActivityName "Create Group Local Admins" -ComputerName $DC -ScriptBlock {
+    New-ADObject -Name $Name -Type Group -Path $TargetPath
+    Set-ADGroup -Identity $Identity -SAMAccountName $Name
+} -Credential $creds -Variable (Get-Variable -Name TargetPath),(Get-Variable -Name Identity),(Get-Variable -Name Name)
+Remove-Variable -Name Name
+Remove-Variable -Name Identity
+Remove-Variable -Name TargetPath
+
+Write-ScreenInfo -Message "end creating AD Groups"
+#endregion
+
+#region Maintain Group Membership
+$User = "domAdmin"
+$Group = "CN=Domain Admins,CN=Users,DC=$TestLabDomainName,DC=LOCAL"
+Invoke-LabCommand -ActivityName "Add User $User to Group $Group" -ComputerName $DC -ScriptBlock {
+    Add-ADGroupMember -Identity $Group -Members $User
+} -Credential $creds -Variable (Get-Variable -Name User),(Get-Variable -Name Group)
+Remove-Variable -Name User
+Remove-Variable -Name Group
+
+$User = "locAdmin"
+$Group = "CN=Local-Admins,OU=Groups,OU=maxxys,DC=$TestLabDomainName,DC=LOCAL"
+Invoke-LabCommand -ActivityName "Add User $User to Group $Group" -ComputerName $DC -ScriptBlock {
+    Add-ADGroupMember -Identity $Group -Members $User
+} -Credential $creds -Variable (Get-Variable -Name User),(Get-Variable -Name Group)
+Remove-Variable -Name User
+Remove-Variable -Name Group
+
+#endregion
 Send-ALNotification -Activity "Actions for $DC" -Message "All actions for $DC done" -Provider Toast
