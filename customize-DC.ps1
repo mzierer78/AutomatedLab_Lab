@@ -47,11 +47,18 @@ Invoke-LabCommand -ActivityName "Add OU $TestLabName" -ComputerName $DC -ScriptB
     New-ADOrganizationalUnit -Name $TestLabName -Path "DC=$TestLabDomainName,DC=LOCAL" -ProtectedFromAccidentalDeletion $False
 } -Credential $creds -Variable (Get-Variable -Name TestLabName),(Get-Variable -Name TestLabDomainName)
 
-$TestLabOUName = 'OU1'
+$TestLabOUName = 'Clients'
 Invoke-LabCommand -ActivityName "Add OU $TestLabOUName" -ComputerName $DC -ScriptBlock {
     New-ADOrganizationalUnit -Name $TestLabOUName -Path "OU=$TestLabName,DC=$TestLabDomainName,DC=LOCAL" -ProtectedFromAccidentalDeletion $False
 } -Credential $creds -Variable (Get-Variable -Name TestLabOUName),(Get-Variable -Name TestLabName),(Get-Variable -Name TestLabDomainName)
 Remove-Variable -Name TestLabOUName
+
+$TestLabOUName = 'Server'
+Invoke-LabCommand -ActivityName "Add OU $TestLabOUName" -ComputerName $DC -ScriptBlock {
+    New-ADOrganizationalUnit -Name $TestLabOUName -Path "OU=$TestLabName,DC=$TestLabDomainName,DC=LOCAL" -ProtectedFromAccidentalDeletion $False
+} -Credential $creds -Variable (Get-Variable -Name TestLabOUName),(Get-Variable -Name TestLabName),(Get-Variable -Name TestLabDomainName)
+Remove-Variable -Name TestLabOUName
+
 #endregion
 
 #region Move Computers to OU's
